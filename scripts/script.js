@@ -1,88 +1,90 @@
+const searchMovie = () => {
+    const searchInput = document.getElementById('search').value;
+    const resultsDiv = document.getElementById('results');
+    const apiKey = '96199a19'; 
+    const youtubeApiKey = 'AIzaSyB-KOgMNLdDQQFeS5S5maRtHXWzihjuLXc'; 
+    const apiUrl = `https://www.omdbapi.com/?apikey=${apiKey}&s=${encodeURIComponent(searchInput)}`;
 
-/*const apiKey = '96199a19'; 
-const searchButton = document.getElementById('search-btn');
-const searchInput = document.getElementById('search');
-const resultsDiv = document.getElementById('results');
-
-searchButton.addEventListener('click', () => {
-    const query = searchInput.value;
-    fetchMovies(query);
-});
-
-async function fetchMovies(query) {
-   const response = await fetch(`http://www.omdbapi.com/?i=tt3896198&apikey=96199a19`);
-    const data = await response.json();
-    displayResults(data.results);
-}
-
-function displayResults(movies) {
-    resultsDiv.innerHTML = ''; // Clear previous results
-    if (movies.length === 0) {
-        resultsDiv.innerHTML = '<p>No results found.</p>';
+    if (searchInput === '') {
+        resultsDiv.innerHTML = '<p>Please enter a movie name!</p>';
         return;
     }
-    
-    movies.forEach(movie => {
-        const movieDiv = document.createElement('div');
-        movieDiv.classList.add('movie');
-        movieDiv.innerHTML = `
-            <h3>${movie.title} (${movie.release_date.split('-')[0]})</h3>
-            <p>Rating: ${movie.vote_average}</p>
-            <p>${movie.overview}</p>
-        `;
-        resultsDiv.appendChild(movieDiv);
-    });
-}*/
 
-
-
-
-
-/*// TMDB API endpoint and API key
-const apiUrl= 'http://www.omdbapi.com/?i=tt3896198&apikey=96199a19';
-const apikey = '96199a19'; 
-
-// Select DOM elements
-const searchInput = document.getElementById('search');
-const searchButton = document.getElementById('search-btn');
-const resultsDiv = document.getElementById('results');
-
-// Add event listener to search button
-searchButton.addEventListener('click', () => {
-  const searchTerm = searchInput.value.trim();
-
-  // Check if search term is not empty
-  if (searchTerm) {
-    // Construct API URL with search term and API key
-    const url = `${apiUrl}?api_key=${apikey}&query=${searchTerm}`;
-
-    // Fetch data from TMDB API
-    fetch('http://www.omdbapi.com/?i=tt3896198&apikey=96199a19')
-      .then(response => response.json())
-      .then(data => {
-        // Clear previous results
-        resultsDiv.innerHTML = '';
-
-        // Display search results
-        data.results.forEach(movie => {
-          const movieDiv = document.createElement('div');
-          movieDiv.innerHTML = `
-            <h2>${movie.title} (${movie.release_date.substring(0, 4)})</h2>
-            <p>${movie.overview}</p>
-          `;
-          resultsDiv.appendChild(movieDiv);
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.Response === 'True') {
+                resultsDiv.innerHTML = data.Search.map(movie => `
+                    <div class="movie">
+                        <h2>${movie.Title} (${movie.Year})</h2>
+                        <img src="${movie.Poster !== 'N/A' ? movie.Poster : 'no-image.jpg'}" alt="${movie.Title}">
+                        <p><strong>Type:</strong> ${movie.Type}</p>
+                        <div id="info-${movie.imdbID}"></div>
+                        <div id="trailer-${movie.imdbID}"></div>
+                        <button onclick="fetchMovieInfo('${movie.imdbID}', 'info-${movie.imdbID}')">Show Info</button>
+                        <button onclick="fetchTrailer('${movie.Title}', 'trailer-${movie.imdbID}')">Watch Trailer</button>
+                    </div>
+                `).join('');
+            } else {
+                resultsDiv.innerHTML = `<p>${data.Error}</p>`;
+            }
+        })
+        .catch(error => {
+            resultsDiv.innerHTML = `<p>Something went wrong! Please try again later.</p>`;
+            console.error('Error fetching movie data:', error);
         });
-      })
-      .catch(error => console.error('Error:', error));
-  }
-});*/
+};
 
+const fetchMovieInfo = (imdbID, infoDivId) => {
+    const apiKey = '96199a19'; 
+    const movieDetailsUrl = `https://www.omdbapi.com/?apikey=${apiKey}&i=${imdbID}&plot=short`;
 
+    fetch(movieDetailsUrl)
+        .then(response => response.json())
+        .then(data => {
+            const infoDiv = document.getElementById(infoDivId);
+            if (data.Response === 'True') {
+                infoDiv.innerHTML = `
+                    <p><strong>Plot:</strong> ${data.Plot}</p>
+                    <p><strong>Director:</strong> ${data.Director}</p>
+                    <p><strong>Actors:</strong> ${data.Actors}</p>
+                    <p><strong>Genre:</strong> ${data.Genre}</p>
+                    <p><strong>Rating:</strong> ${data.imdbRating}/10</p>
+                `;
+            } else {
+                infoDiv.innerHTML = `<p>${data.Error}</p>`;
+            }
+        })
+        .catch(error => {
+            const infoDiv = document.getElementById(infoDivId);
+            infoDiv.innerHTML = '<p>Error fetching movie information.</p>';
+            console.error('Error fetching movie info:', error);
+        });
+};
 
-fetch(
-    "http://www.omdbapi.com/?i=tt3896198&apikey=96199a19"
-  )
-    .then(function (response) {
-      console.log(response.body);
-      return response.json();
-    })
+const fetchTrailer = (movieTitle, trailerDivId) => {
+    const youtubeApiKey = 'AIzaSyB-KOgMNLdDQQFeS5S5maRtHXWzihjuLXc'; 
+    const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q=${encodeURIComponent(movieTitle)}+trailer&type=video&key=${youtubeApiKey}`;
+
+    fetch(youtubeApiUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.items && data.items.length > 0) {
+                const videoId = data.items[0].id.videoId;
+                const trailerDiv = document.getElementById(trailerDivId);
+                trailerDiv.innerHTML = `
+                    <iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                `;
+            } else {
+                const trailerDiv = document.getElementById(trailerDivId);
+                trailerDiv.innerHTML = '<p>No trailer found for this movie.</p>';
+            }
+        })
+        .catch(error => {
+            const trailerDiv = document.getElementById(trailerDivId);
+            trailerDiv.innerHTML = '<p>Error fetching trailer.</p>';
+            console.error('Error fetching YouTube trailer:', error);
+        });
+};
+
+document.getElementById('search-btn').addEventListener('click', searchMovie);
